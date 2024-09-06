@@ -51,16 +51,6 @@ NEED_TIME_PARS = 24
 
 # Proxies list and proxy cycling for both pre-match and live parsing
 PROXIES = [
-    "http://UM7mgP:lCYt0wOU7Z@45.86.0.92:1050",
-    "http://UM7mgP:lCYt0wOU7Z@188.130.129.231:1050",
-    "http://UM7mgP:lCYt0wOU7Z@188.130.136.143:1050",
-    "http://UM7mgP:lCYt0wOU7Z@109.248.139.122:1050",
-    "http://UM7mgP:lCYt0wOU7Z@109.248.143.160:1050",
-    "http://UM7mgP:lCYt0wOU7Z@109.248.166.233:1050",
-    "http://UM7mgP:lCYt0wOU7Z@46.8.16.88:1050",
-    "http://UM7mgP:lCYt0wOU7Z@46.8.110.173:1050",
-    "http://UM7mgP:lCYt0wOU7Z@46.8.17.231:1050",
-    "http://UM7mgP:lCYt0wOU7Z@94.158.190.9:1050",
 ]
 
 # Concurrency settings
@@ -78,4 +68,12 @@ LIVE_UPDATE_INTERVAL = 30  # Update interval for live events (in seconds)
 SLID_ALL = 0  # Default SLID for live parsing
 list_games = {}  # Dictionary to store live games data
 
+SPORTS_TO_RUN = [
+    ("Football", "PreMatch"),
+    ("Tennis", "PreMatch"),
+    # ("Football", "Live"),
+    # ("Tennis", "Live"),
+    # ("Football", "Both"),
+    # ("Tennis", "Both"),
+]
 
