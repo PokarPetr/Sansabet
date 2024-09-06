@@ -36,7 +36,41 @@
 3.1. Формат сообщений
 
 Использовать JSON для форматирования отправляемых данных.
-Структура сообщения должна соответсвовать описанию в socket-output-format.md:
+Структура сообщения должна соответсвовать 
+{
+  "event_id": 1596508032,
+  "match_name": "Nieciecza vs Korona Kielce",
+  "start_time": 1725618600.0,
+  "home_team": "Nieciecza",
+  "away_team": "Korona Kielce",
+  "league_id": 1863,
+  "league": "Club Friendlies",
+  "country": "World",
+  "sport": "Football",
+  "type": "PreMatch",
+  "outcomes": '[
+    {
+      "type_name": "1X2",
+      "type": "1",
+      "line": 0,
+      "odds": 2.49
+    },
+    {
+      "type_name": "Asian Handicap",
+      "type": "AH1",
+      "line": 0.0,
+      "odds": 1.862
+    },
+    {
+      "type_name": "Total Goals",
+      "type": "O",
+      "line": 2.75,
+      "odds": 1.793
+    },
+    // ... другие исходы
+  ]',
+  "time": 1725607715.9000313
+}
 
 4. Протокол передачи
 
