@@ -1,63 +1,88 @@
-from utils.imports import asyncio, time, datetime, ClientSession
+from utils.imports import asyncio, datetime, ClientSession, time
 from utils.log_config import log_message
 from config import PREMATCH_UPDATE_INTERVAL, LIVE_UPDATE_INTERVAL, SPORTS_IDS, MAX_CONCURRENT_REQUESTS, HEADERS
-from config import PREMATCH_URLS, LIVE_URLS
-from sansabet_parser import get_sansabet_odds
-from pre_match_parser import parse_one_match
+from parsers.sansabet_parser import get_sansabet_matches
+from parsers.sansabet_parser import parse_one_match
 from utils.data_sender import send_data
-from pre_match_parser import parsed_matches
 
-async def update_odds():
+parsed_matches = {
+    "PreMatch": {},  # Для хранения предматчевых данных
+    "Live": {}       # Для хранения live-данных
+}
+previous_state = {  # Сохранение предыдущих состояний матчей для сравнения
+    "PreMatch": {},
+    "Live": {}
+}
+
+ALL_MATCHES = {}
+
+
+async def get_updated_matches():
+    updated_matches = {"PreMatch": [], "Live": []}
+    for mode in ["PreMatch", "Live"]:
+        for event_id, match_data in parsed_matches[mode].items():
+            if event_id not in previous_state[mode] or previous_state[mode][event_id] != match_data:
+                updated_matches[mode].append(match_data)
+
+        previous_state[mode] = parsed_matches[mode].copy()
+    return updated_matches
+
+
+async def send_updated_matches(interval):
+    while True:
+        start_time = time.time()
+        updated_matches = await get_updated_matches()
+
+        if updated_matches["PreMatch"] or updated_matches["Live"]:
+            try:
+                await asyncio.shield(send_data(updated_matches))
+            except Exception as e:
+                log_message('error', f"Ошибка при обновлении коэффициентов Sansabet: {e}")
+
+        elapsed_time = time.time() - start_time
+        await asyncio.sleep(max(0, interval - elapsed_time))
+
+
+async def update_odds(mode):
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
     async with ClientSession(headers=HEADERS) as session:
         for sport_id in [SPORTS_IDS['Football'], SPORTS_IDS["Tennis"]]:
-            all_urls = {
-                "pre_matches": {
-                    "sports_leagues": PREMATCH_URLS.get("sports_leagues", ""),
-                    "parse_one_match": PREMATCH_URLS.get("parse_one_match", ""),
-                    "league": PREMATCH_URLS.get("league", "")
-                },
-                "live": {
-                    "sports_leagues": LIVE_URLS.get("all_events", ""),
-                    "parse_one_match": LIVE_URLS.get("match_event", "")
-                }
-            }
-            for key, urls in all_urls.items():
-                events = await get_sansabet_odds(session, sport_id, urls)
-                url = urls.get('parse_one_match', PREMATCH_URLS["parse_one_match"])
-                tasks = [parse_one_match(event, session, url, semaphore) for event in events]
-                await asyncio.gather(*tasks)
+            events = await get_sansabet_matches(session, sport_id, mode)
+            tasks = [parse_one_match(event, session, mode, semaphore) for event in events]
+            await asyncio.gather(*tasks)
 
 
-async def update_sansabet_odds_periodically(interval=PREMATCH_UPDATE_INTERVAL):
-    print("Sansabet odds updater started", file=open('log_sansa.txt', 'a'))
+async def update_sansabet_odds_periodically(interval, mode):
     while True:
         start_time = time.time()
         try:
-            await asyncio.shield(update_odds())
-            parsed_matches_new = []
-            for match in parsed_matches.values():
-                if (datetime.now().timestamp() - match['time']) < 15:
-                    parsed_matches_new.append(match)
-            log_message('info',
-                f"Коэффициенты Sansabet обновлены. Всего матчей: {len(ALL_MATCHES)}, Обработанных матчей: {len(parsed_matches_new)}")
-            print(
-                f"Коэффициенты Sansabet обновлены. Всего матчей: {len(ALL_MATCHES)}, Обработанных матчей: {len(parsed_matches_new)}",
-                datetime.now(), file=open('log_sansa.txt', 'a'))
+            await asyncio.shield(update_odds(mode))
         except Exception as e:
             log_message('error', f"Ошибка при обновлении коэффициентов Sansabet: {e}")
-            print(f"Ошибка при обновлении коэффициентов Sansabet: {e}",
-                  datetime.now(), file=open('log_sansa.txt', 'a'))
 
         elapsed_time = time.time() - start_time
-        sleep_time = max(0, interval - elapsed_time)
-        await asyncio.sleep(sleep_time)
-"""
-   Entry point of the application. It schedules periodic updates for fetching and processing odds data.
-"""
+        await asyncio.sleep(max(0, interval - elapsed_time))
+
+
+async def run_tasks():
+    """
+    Функция для запуска фоновых задач с разными интервалами обновления.
+    """
+    try:
+        tasks = [
+            asyncio.create_task(update_sansabet_odds_periodically(PREMATCH_UPDATE_INTERVAL, "PreMatch")),  # Раз в час
+            asyncio.create_task(update_sansabet_odds_periodically(LIVE_UPDATE_INTERVAL, "Live")),  # Раз в минуту
+            asyncio.create_task(send_updated_matches(LIVE_UPDATE_INTERVAL))  # Раз в минуту
+        ]
+        await asyncio.gather(*tasks)
+    except Exception as e:
+        log_message('error', f"Ошибка в основном процессе: {e}")
+    finally:
+        log_message('info', "Завершение программы")
+
+
 if __name__ == "__main__":
-    asyncio.run(update_sansabet_odds_periodically())
-    # asyncio.run(send_data(parsed_matches))
+    asyncio.run(run_tasks())
 
 
 

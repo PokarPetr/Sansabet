@@ -29,4 +29,5 @@ if __name__ == "__main__":
     async def main():
         data = {"example": "data"}
         await send_data(data)
+
     asyncio.run(main())

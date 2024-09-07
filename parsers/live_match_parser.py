@@ -4,8 +4,34 @@ from utils.log_config import log_message
 
 list_games = {}
 
-async def parse_one_game(session,  game_key: int,
-                         game, urls):
+async def parse_one_live_match(session,  event, urls):
+    game_key = event['game_key']
+    game = event['game']
+    h_data = event['H']
+
+    if h_data['S'] not in ['F', 'T']:  # F-ootball | T-ennis
+        return
+
+    slid = int(h_data['SLID'])
+    pid = int(h_data['PID'])
+    if h_data['S'] == 'F':
+        p_data = event['P']
+        t_data = p_data['T']
+        if 'M' not in t_data or 'M' in t_data and not t_data['M']:
+            return
+        match_time = int(t_data.get('M', -2))
+
+        if match_time <= 0 or match_time >= 90:
+            return
+
+    if pid not in list_games:
+        list_games[pid] = {"pid": pid, "slid": slid,
+                           "time": time.time()}
+
+
+
+    if slid > 0:
+        slid_all = slid
     url = urls.get("parse_one_match").format(0, game['pid'])
     try:
         method = "GET"

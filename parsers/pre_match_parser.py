@@ -1,11 +1,10 @@
-
 from utils.imports import asyncio, time, datetime, random, os
 from utils.network import fetch_with_retry
 
 
 parsed_matches = {}
 
-async def parse_one_match(session, match, url, semaphore):
+async def parse_one_pre_match(session, match, url, semaphore):
     await asyncio.sleep(random.uniform(0.01, 1))
     async with semaphore:
         data = {
