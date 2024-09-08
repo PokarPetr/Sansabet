@@ -44,19 +44,26 @@ async def send_updated_matches(interval):
 
 
 async def update_odds(mode):
+    global parsed_matches
     semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
     async with ClientSession(headers=HEADERS) as session:
         for sport_id in [SPORTS_IDS['Football'], SPORTS_IDS["Tennis"]]:
             events = await get_sansabet_matches(session, sport_id, mode)
             tasks = [parse_one_match(event, session, mode, semaphore) for event in events]
-            await asyncio.gather(*tasks)
+            results = await asyncio.gather(*tasks)
+            results = [result for result in results if result is not None]
+
+            for result in results:
+                match_id = result['match_id']
+                parsed_matches[mode][match_id] = result
+
 
 
 async def update_sansabet_odds_periodically(interval, mode):
     while True:
         start_time = time.time()
         try:
-            await asyncio.shield(update_odds(mode))
+            await update_odds(mode)
         except Exception as e:
             log_message('error', f"Ошибка при обновлении коэффициентов Sansabet: {e}")
 
@@ -85,46 +92,3 @@ if __name__ == "__main__":
     asyncio.run(run_tasks())
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# import asyncio
-# import websockets
-# import logging
-#
-# logging.basicConfig(level=logging.INFO)
-#
-# async def echo(websocket, path):
-#     async for message in websocket:
-#         logging.info(f"Received message: {message}")
-#         await websocket.send("Data received")
-#
-# async def main():
-#     server = await websockets.serve(echo, "localhost", 8765)
-#     await server.wait_closed()
-#
-# if __name__ == "__main__":
-#     asyncio.run(main())

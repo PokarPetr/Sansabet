@@ -51,6 +51,7 @@ NEED_TIME_PARS = 24
 
 # Proxies list and proxy cycling for both pre-match and live parsing
 PROXIES = [
+    None,
 ]
 
 # Concurrency settings

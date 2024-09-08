@@ -2,15 +2,12 @@ from utils.network import fetch_with_retry
 from utils.imports import asyncio, time, ClientError, json, os
 from utils.log_config import log_message
 
-list_games = {}
 
 async def parse_one_live_match(session,  event, urls):
-    game_key = event['game_key']
-    game = event['game']
     h_data = event['H']
 
     if h_data['S'] not in ['F', 'T']:  # F-ootball | T-ennis
-        return
+        return None
 
     slid = int(h_data['SLID'])
     pid = int(h_data['PID'])
@@ -18,27 +15,21 @@ async def parse_one_live_match(session,  event, urls):
         p_data = event['P']
         t_data = p_data['T']
         if 'M' not in t_data or 'M' in t_data and not t_data['M']:
-            return
+            return None
         match_time = int(t_data.get('M', -2))
 
         if match_time <= 0 or match_time >= 90:
-            return
-
-    if pid not in list_games:
-        list_games[pid] = {"pid": pid, "slid": slid,
-                           "time": time.time()}
-
-
+            return None
 
     if slid > 0:
         slid_all = slid
-    url = urls.get("parse_one_match").format(0, game['pid'])
+    url = urls.get("parse_one_match").format(0, pid)
     try:
         method = "GET"
         data = await fetch_with_retry(session, url, None, 3, method)
 
         if not data:
-            return
+            return None
 
         with open("data.json", 'w') as f:
             f.write(json.dumps(data))
@@ -46,7 +37,6 @@ async def parse_one_live_match(session,  event, urls):
         core_item = data[0]
         h_data = core_item['H']
         if not h_data or 'ParNaziv' not in h_data:
-            log_message('warning', f"Missing data in received response. Slid {game['slid']} Pid {game['pid']}")
             return
         home_team, away_team = h_data['ParNaziv'].split(' : ')
         sport = ('Football' if h_data['S'] == 'F' else (
@@ -72,8 +62,8 @@ async def parse_one_live_match(session,  event, urls):
         if "YC" in r_data:
             yellow_cards = r_data["YC"]
 
-        one_game = {
-            "pid": game['pid'],
+        event = {
+            "match_id": pid,
             "slid": int(h_data['SLID']),
             "league": h_data['LigaNaziv'],
             "home_team": home_team,
@@ -87,9 +77,6 @@ async def parse_one_live_match(session,  event, urls):
             "yellow_cards": yellow_cards
 
         }
-        # print(one_game, file=open("one_gametut.json", "a"))
-
-        # print(core_item, file=open("core_item.json", "a"))
         if 'M' not in core_item:
             # print("M not in core_item", file=open("M_not_in_core_item.json", "a"))
             return
@@ -428,25 +415,12 @@ async def parse_one_live_match(session,  event, urls):
                          'line': handicap_value,
                          'odds': odds_value})
 
-        one_game['outcomes'] = odds
-        one_game['time'] = time.time()
-
-        # logging.debug(json.dumps(one_game, indent=4))
-
-        list_games[game_key] = one_game
-        match_name = f"{one_game['home_team']} vs {one_game['away_team']}"
-        # проверка на наличие директории
-        if not os.path.exists("matches_sansa"):
-            os.makedirs("matches_sansa")
-        match_name = match_name.replace("/", "")
-        print(one_game,
-              file=open(f"matches_sansa/{match_name}.json", "a"))
+        event['outcomes'] = odds
+        event['time'] = time.time()
 
     except (
         ClientError, KeyError, ValueError,
         json.JSONDecodeError) as e:
-        log_message("error", f"Error processing game {game['pid']}: {str(e)}")
+        log_message("error", f"Error processing game {pid}: {str(e)}")
 
-        list_games.pop(game_key, None)
-
-    return list_games[game_key]
+    return event

@@ -2,10 +2,10 @@ from utils.imports import asyncio, time, datetime, random, os
 from utils.network import fetch_with_retry
 
 
-parsed_matches = {}
+# parsed_matches = {}
 
 async def parse_one_pre_match(session, match, url, semaphore):
-    await asyncio.sleep(random.uniform(0.01, 1))
+    # await asyncio.sleep(random.uniform(0.01, 1))
     async with semaphore:
         data = {
             "PairId": match['match_id'],
@@ -93,8 +93,6 @@ async def parse_one_pre_match(session, match, url, semaphore):
                                     "single": odd["Single"]
                                 })
 
-
-
                 # 1 half Totals under
                 elif odds_type['ID'] == 18:
                     for odd in odds_type['T']:
@@ -139,9 +137,6 @@ async def parse_one_pre_match(session, match, url, semaphore):
                                     "odds": odd['Kvota'],
                                     "single": odd["Single"]
                                 })
-
-
-
                 # 2 half Totals under
                 elif odds_type['ID'] == 21:
                     for odd in odds_type['T']:
@@ -162,46 +157,9 @@ async def parse_one_pre_match(session, match, url, semaphore):
                                             "odds": odd['Kvota'],
                                             "single": odd["Single"]
                                         })
-
-                # 1 half Totals
-                # elif odds_type['ID'] == 17:
-                #     for odd in odds_type['T']:
-                #         if '.' in odd['TipVnes'] or '*' in odd['TipVnes']:
-                #             continue
-                #
-                #         total_type = ('U' if '-' in odd['TipPecatiWeb'] else 'O')
-                #         parsed_odds.append({
-                #             "type_name": "1 half Totals",
-                #             "type": '1H' + total_type,
-                #             "line": (int(odd['TipVnes'][
-                #                              -1]) + 0.5 if total_type == 'U' else int(
-                #                 odd['TipVnes'][-1]) - 0.5),
-                #             "odds": odd['Kvota'],
-                #             "single": odd["Single"]
-                #         })
-                #
-                # # 2 half Totals
-                # elif odds_type['ID'] == 20:
-                #     for odd in odds_type['T']:
-                #         if '.' in odd['TipVnes'] or '*' in odd['TipVnes']:
-                #             continue
-                #
-                #         total_type = ('U' if '-' in odd['TipPecatiWeb'] else 'O')
-                #         parsed_odds.append({
-                #             "type_name": "1 half Totals",
-                #             "type": '2H' + total_type,
-                #             "line": (int(odd['TipVnes'][
-                #                              -1]) + 0.5 if total_type == 'U' else int(
-                #                 odd['TipVnes'][-1]) - 0.5),
-                #             "odds": odd['Kvota'],
-                #             "single": odd["Single"]
-                #         })
-
-                # Team 1 Totals
                 elif odds_type['ID'] == 27:
                     for odd in odds_type['T']:
-                        if ('.' in odd['TipVnes'] or odd['TipPecatiWeb'][-2] in [
-                            '=', '>', '<']):
+                        if '.' in odd['TipVnes'] or odd['TipPecatiWeb'][-2] in ['=', '>', '<']:
                             continue
 
                         if odd['TipPecatiWeb'].endswith('0'):
@@ -229,8 +187,7 @@ async def parse_one_pre_match(session, match, url, semaphore):
                 # Team 2 Totals
                 elif odds_type['ID'] == 32:
                     for odd in odds_type['T']:
-                        if ('.' in odd['TipVnes'] or odd['TipPecatiWeb'][-2] in [
-                            '=', '>', '<']):
+                        if '.' in odd['TipVnes'] or odd['TipPecatiWeb'][-2] in ['=', '>', '<']:
                             continue
 
                         if odd['TipPecatiWeb'].endswith('0'):
@@ -483,18 +440,19 @@ async def parse_one_pre_match(session, match, url, semaphore):
 
         match['outcomes'] = parsed_odds
         match['time'] = datetime.now().timestamp()
-        print(
-            f"Match {match['home_team']} vs {match['away_team']} parsed {datetime.now()}",
-            file=open('log_sansa_.txt', 'a'))
-        parsed_matches[match['match_id']] = match
-        # проверяем что папка существует
-        # сохраняем в файл
-        if not os.path.exists('parsed_sansa_matches'):
-            os.makedirs('parsed_sansa_matches')
-        match_name = match['home_team'] + ' vs ' + match['away_team']
-        safety_match_name = match_name.replace('/', ' ')
-        match["time"] = datetime.now().timestamp()
-        with open(f"parsed_sansa_matches/{safety_match_name}.json",
-                  "a") as f:
-            print(match, file=f)
-        return match['match_id']
+        # print(
+        #     f"Match {match['home_team']} vs {match['away_team']} parsed {datetime.now()}",
+        #     file=open('log_sansa_.txt', 'a'))
+        # parsed_matches[match['match_id']] = match
+        # # проверяем что папка существует
+        # # сохраняем в файл
+        # if not os.path.exists('parsed_sansa_matches'):
+        #     os.makedirs('parsed_sansa_matches')
+        # match_name = match['home_team'] + ' vs ' + match['away_team']
+        # safety_match_name = match_name.replace('/', ' ')
+        # match["time"] = datetime.now().timestamp()
+        # with open(f"parsed_sansa_matches/{safety_match_name}.json",
+        #           "a") as f:
+        #     print(match, file=f)
+        # return match['match_id']
+        return match
